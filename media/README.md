@@ -83,7 +83,7 @@ The x-axis represents different rating categories, ranging from 1 to 5, while th
 In addition, there's a red line indicating the cumulative percentage of responses, which rises sharply as the ratings increase. The green dashed line marks the 80% threshold, suggesting that a considerable portion of the total ratings is achieved by focusing on the higher ratings, particularly 3 and 4. This analysis can help stakeholders identify areas for improvement efficiently, confirming the Pareto principle that a minority of causes often lead to the majority of effects. Overall, this visual tool facilitates quick insights into performance ratings, guiding decision-makers towards impactful changes.
 
 ### Image Regression Analysis: overall vs repeatability
-![Regression Analysis: overall vs repeatability](Regression_Analysis:_overall_vs_repeatability.png)
+![Regression Analysis: overall vs repeatability](Regression_Analysis__overall_vs_repeatability.png)
 
 The provided scatter plot illustrates a regression analysis comparing "overall" scores against "repeatability" values. Each point on the graph represents a data pair, where the x-axis denotes repeatability (ranging from 1.0 to about 3.0) and the y-axis shows overall scores (ranging from approximately 3 to 5).
 
