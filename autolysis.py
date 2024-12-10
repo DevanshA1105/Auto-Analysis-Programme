@@ -8,6 +8,7 @@
 #   "seaborn",
 #   "statsmodels",
 #   "scikit-learn",
+#   "watchdog"
 # ]
 # ///
 
@@ -21,12 +22,57 @@ import seaborn as sns
 import statsmodels.api as sm
 import json
 import warnings
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder
 import re
 import base64
 
 warnings.filterwarnings("ignore", category=UserWarning)
+
+class RenameHandler(FileSystemEventHandler):
+    """
+    Handler to rename files by replacing spaces, semicolons, and colons with '_'.
+    """
+    def on_modified(self, event):
+        if not event.is_directory:
+            self.rename_file(event.src_path)
+
+    def on_created(self, event):
+        if not event.is_directory:
+            self.rename_file(event.src_path)
+
+    @staticmethod
+    def rename_file(file_path):
+        # Get the directory and filename
+        directory, filename = os.path.split(file_path)
+
+        # Replace spaces, semicolons, and colons
+        new_filename = filename.replace(" ", "_").replace(";", "_").replace(":", "_")
+        new_file_path = os.path.join(directory, new_filename)
+
+        # Rename only if the filename changes
+        if file_path != new_file_path:
+            os.rename(file_path, new_file_path)
+            print(f'Renamed: "{filename}" -> "{new_filename}"')
+
+def monitor_directory(directory_to_watch):
+    """
+    Starts monitoring the directory for changes.
+    """
+    observer = Observer()
+    event_handler = RenameHandler()
+    observer.schedule(event_handler, directory_to_watch, recursive=False)
+
+    print(f"Monitoring directory: {directory_to_watch}")
+    observer.start()
+    try:
+        while True:
+            pass  # Keep the script running
+    except KeyboardInterrupt:
+        observer.stop()
+        observer.join()
 
 # Check if the correct number of arguments is provided
 if len(sys.argv) != 2:
@@ -50,6 +96,9 @@ if not AIPROXY_TOKEN:
 # Get the folder ready to save outputs
 if not os.path.exists(folder_name):
     os.mkdir(folder_name)
+
+# Set your directory to monitor
+monitor_directory(folder_name)
 
 def load_csv(file_path: str):
     """
@@ -523,9 +572,7 @@ def LLM_analysis(path: str, data: pd.DataFrame):
                 (a) Network Analysis  
                 (b) Hierarchy Analysis   
                 (c) Anomaly Detection
-                (d) Pareto Analysis
-                (e) Demand-Response Analysis
-                (f) Some other meaningful analysis with good visual  
+                (d) Some other meaningful analysis with good visual  
 
                 ### Instructions:
                 1. Based on the metadata, **determine the most suitable type of analysis** from the list above.  
@@ -858,7 +905,7 @@ def Plot_Summary(json_file_input: dict, additional_analysis, folder_name: str, d
         user_input_type = 'image_url'
         for image_name, image_data in images.items():
             file.write(f"\n\n### Image {image_name}\n")
-            file.write(f"![{image_name}]({image_name}.png)\n")
+            file.write(f"![{image_name}]({image_name.replace(" ", "_").replace(";", "_").replace(":", "_")}.png)\n\n")
 
             sys_content = f'Write a description on the {image_name} image in 200-250 words'
             user_content ={"url":  f"data:image/jpeg;base64,{image_data}",
