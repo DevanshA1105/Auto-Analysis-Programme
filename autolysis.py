@@ -858,7 +858,7 @@ def Plot_Summary(json_file_input: dict, additional_analysis, folder_name: str, d
         user_input_type = 'image_url'
         for image_name, image_data in images.items():
             file.write(f"\n\n### Image {image_name}\n")
-            file.write(f'<img src="data:image/png;base64,{image_data}" alt="Image {image_name}" style="max-width:100%; height:auto;">\n')
+            file.write(f"![{image_name}]({image_name}.png)\n")
 
             sys_content = f'Write a description on the {image_name} image in 200-250 words'
             user_content ={"url":  f"data:image/jpeg;base64,{image_data}",
