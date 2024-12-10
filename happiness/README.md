@@ -80,6 +80,7 @@ In conclusion, the analysis provides a robust picture of global well-being metri
 
 ### Image Clustering_analysis
 ![Clustering_analysis](Clustering_analysis.png)
+
 The image presents a scatter plot entitled "Clustering Results," showcasing the relationship between social support and the logarithm of GDP per capita across various data points. The data is divided into three distinct clusters, each identified by different colors: orange for Cluster 0, blue for Cluster 1, and green for Cluster 2. Each point on the plot represents a data entry, indicating the level of social support on the vertical axis (ranging from 0 to 1) against the logarithm of GDP per capita displayed on the horizontal axis.
 
 Prominently, red crosses mark the centroids of each cluster, serving as representatives of the average social support levels associated with each GDP per capita range. The distribution of points suggests a correlation between GDP per capita and social support, with higher GDP log values generally linked to increased social support levels. However, the clusters indicate variability within this trend, with some instances of high social support occurring across different GDP log values.
@@ -88,6 +89,7 @@ Overall, the visualization effectively illustrates how countries or regions can 
 
 ### Image correlation_heatmap
 ![correlation_heatmap](correlation_heatmap.png)
+
 The correlation heatmap visually represents the relationships between various indicators related to well-being, including "Life Ladder," "Log GDP per capita," "Social support," and "Healthy life expectancy at birth." Each cell in the grid is colored to indicate the strength and direction of the correlation, with a scale from -1 to 1, where values closer to 1 suggest a strong positive correlation and values closer to -1 indicate a strong negative correlation.
 
 In this heatmap, the "Life Ladder" demonstrates a strong positive correlation with "Log GDP per capita" (0.79), suggesting that as the GDP per capita increases, individuals tend to report higher life satisfaction. Similarly, a notable correlation exists between "Life Ladder" and "Healthy life expectancy at birth" (0.73), indicating that higher life satisfaction is associated with longer life expectancy.
@@ -97,7 +99,8 @@ In this heatmap, the "Life Ladder" demonstrates a strong positive correlation wi
 Overall, the heatmap illustrates intricate interconnections between economic factors, social support, and individual life satisfaction.
 
 ### Image Life Ladder_time_series_trends
-![Life Ladder_time_series_trends](Life Ladder_time_series_trends.png)
+![Life Ladder_time_series_trends](Life_Ladder_time_series_trends.png)
+
 The graph titled "Time Series and Moving Average for Life Ladder" displays trends in Life Ladder values over time, illustrating fluctuating trends in well-being or life satisfaction. The x-axis represents time, while the y-axis shows the Life Ladder value, ranging from approximately 5.25 to 6.75. 
 
 The bold blue line depicts the Life Ladder values over time, highlighting its variations and overall trajectory. Accompanying this, the red line represents the 7-day moving average, providing a smoothed view of the data by averaging Life Ladder values over the previous week.
