@@ -71,6 +71,7 @@ Justification for the input analysis lies in its usefulness in decision-making, 
 
 ### Image average_rating_time_series_trends
 ![average_rating_time_series_trends](average_rating_time_series_trends.png)
+
 The provided image illustrates a time series analysis for the variable "average_rating" alongside its 7-day moving average, spanning from the years 1965 to 1970. The graph features two distinct lines: a blue line representing the actual average ratings and a red line indicating the 7-day moving average. 
 
 The average ratings exhibit noticeable fluctuations over time, with several peaks and troughs. Initially, the ratings hover around the 3.5 mark, gradually increasing during the late 1960s, with a few intermittent dips. These variations suggest that the ratings are influenced by external factors, possibly reflecting changes in public opinion or a shift in the quality of the content being rated.
@@ -81,6 +82,7 @@ Overall, this visualization effectively conveys the trends in average ratings ov
 
 ### Image Clustering_analysis
 ![Clustering_analysis](Clustering_analysis.png)
+
 The image titled "Clustering Results" presents a scatter plot that effectively visualizes the results of a clustering analysis based on two variables: average rating and ratings count. The x-axis represents the average rating, which ranges from approximately 2.5 to 4.5, while the y-axis indicates the ratings count, extending up to 5 million. 
 
 In the plot, data points are color-coded to represent three distinct clusters: Cluster 0 is depicted in green, Cluster 1 in orange, and Cluster 2 in blue. Each cluster aggregates data points that share similar characteristics, allowing for easy identification of groupings based on the combination of average rating and ratings count. The dispersion of points suggests that there is a diverse distribution of ratings, with many instances falling within the mid-range of average ratings.
@@ -89,6 +91,7 @@ Additionally, the centroids of each cluster are marked by red 'X' symbols. These
 
 ### Image correlation_heatmap
 ![correlation_heatmap](correlation_heatmap.png)
+
 The image displays a correlation heatmap, which visually represents the relationships between three variables: average_rating, ratings_count, and work_ratings_count. The heatmap employs a gradient color scheme to depict the strength and direction of correlations, with red indicating a strong positive correlation and blue representing a weak or no correlation.
 
 In the matrix, the diagonal elements (from top left to bottom right) all show a correlation of 1.00, signifying perfect correlation of each variable with itself. The off-diagonal elements reveal important interrelationships: the average_rating is weakly correlated with both ratings_count and work_ratings_count, as indicated by the values of 0.05. This suggests that changes in average ratings have minimal impact on the total number of ratings or the number of ratings for works, indicating that these metrics may operate independently in this dataset.
