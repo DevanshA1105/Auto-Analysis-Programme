@@ -88,7 +88,7 @@ In the plot, data points are color-coded to represent three distinct clusters: C
 Additionally, the centroids of each cluster are marked by red 'X' symbols. These centroids represent the central point for each cluster, indicating the average characteristics of the data points within that cluster. The visual distinction between clusters and their centroids helps to illustrate the groups’ characteristics and their relative positioning within the overall data set. This type of analysis is invaluable for understanding patterns in data, particularly in fields such as marketing and customer segmentation.
 
 ### Image correlation_heatmap
-![correlation_heatmap](correaltion_heatmap.png)
+![correlation_heatmap](correlation_heatmap.png)
 The image displays a correlation heatmap, which visually represents the relationships between three variables: average_rating, ratings_count, and work_ratings_count. The heatmap employs a gradient color scheme to depict the strength and direction of correlations, with red indicating a strong positive correlation and blue representing a weak or no correlation.
 
 In the matrix, the diagonal elements (from top left to bottom right) all show a correlation of 1.00, signifying perfect correlation of each variable with itself. The off-diagonal elements reveal important interrelationships: the average_rating is weakly correlated with both ratings_count and work_ratings_count, as indicated by the values of 0.05. This suggests that changes in average ratings have minimal impact on the total number of ratings or the number of ratings for works, indicating that these metrics may operate independently in this dataset.
