@@ -66,6 +66,7 @@ Overall, this analysis showcases that a large portion of ratings skew towards th
 
 ### Image correlation_heatmap
 ![correlation_heatmap](correlation_heatmap.png)
+
 The correlation heatmap visually represents the relationship between two variables: "quality" and "repeatability." The matrix is structured in a grid format, with both variables displayed along the axes. The diagonal cells, where each variable intersects with itself, show a correlation coefficient of 1.0, indicating a perfect positive correlation, as expected.
 
 The off-diagonal cell, which represents the correlation between "quality" and "repeatability," displays a value of 0.31. This positive correlation suggests a moderate relationship; as one variable increases, the other tends to increase as well, albeit not strongly. The color gradient, transitioning from deep red (indicating strong correlation) to deep blue (indicating weak correlation), further emphasizes the strength of these relationships. 
@@ -74,6 +75,7 @@ The heatmap helps to quickly assess the relationship between the two variables, 
 
 ### Image Pareto_Analysis
 ![Pareto_Analysis](Pareto_Analysis.png)
+
 The image depicts a Pareto analysis, often used to identify the most significant factors in a dataset. It displays a bar chart alongside a cumulative line graph, effectively illustrating the distribution of overall ratings.
 
 The x-axis represents different rating categories, ranging from 1 to 5, while the y-axis indicates the count of responses for each rating. The blue bars highlight the frequency of ratings at each level, where the most common rating appears to be 3, followed by 4, with significantly fewer instances of ratings 1 and 5. This visual representation emphasizes that the majority of ratings cluster around the middle range, showcasing a typical "bell curve" distribution.
@@ -81,7 +83,8 @@ The x-axis represents different rating categories, ranging from 1 to 5, while th
 In addition, there's a red line indicating the cumulative percentage of responses, which rises sharply as the ratings increase. The green dashed line marks the 80% threshold, suggesting that a considerable portion of the total ratings is achieved by focusing on the higher ratings, particularly 3 and 4. This analysis can help stakeholders identify areas for improvement efficiently, confirming the Pareto principle that a minority of causes often lead to the majority of effects. Overall, this visual tool facilitates quick insights into performance ratings, guiding decision-makers towards impactful changes.
 
 ### Image Regression Analysis: overall vs repeatability
-![Regression Analysis: overall vs repeatability](Regression Analysis: overall vs repeatability.png)
+![Regression Analysis: overall vs repeatability](Regression_Analysis:_overall_vs_repeatability.png)
+
 The provided scatter plot illustrates a regression analysis comparing "overall" scores against "repeatability" values. Each point on the graph represents a data pair, where the x-axis denotes repeatability (ranging from 1.0 to about 3.0) and the y-axis shows overall scores (ranging from approximately 3 to 5).
 
 The data points are plotted as blue circles, emphasizing their distribution across the two dimensions. A red regression line is applied to the scatter, indicating the trend of the relationship between the variables. The line appears to have a positive slope, suggesting that as repeatability increases, the overall scores also tend to increase. This relationship implies a direct correlation, where improved repeatability is associated with higher overall performance.
