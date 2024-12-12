@@ -7,8 +7,7 @@
 #   "matplotlib",
 #   "seaborn",
 #   "statsmodels",
-#   "scikit-learn",
-#   "watchdog"
+#   "scikit-learn"
 # ]
 # ///
 
@@ -22,8 +21,6 @@ import seaborn as sns
 import statsmodels.api as sm
 import json
 import warnings
-from watchdog.observers import Observer
-from watchdog.events import FileSystemEventHandler
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder
 import re
@@ -31,48 +28,6 @@ import base64
 
 warnings.filterwarnings("ignore", category=UserWarning)
 
-class RenameHandler(FileSystemEventHandler):
-    """
-    Handler to rename files by replacing spaces, semicolons, and colons with '_'.
-    """
-    def on_modified(self, event):
-        if not event.is_directory:
-            self.rename_file(event.src_path)
-
-    def on_created(self, event):
-        if not event.is_directory:
-            self.rename_file(event.src_path)
-
-    @staticmethod
-    def rename_file(file_path):
-        # Get the directory and filename
-        directory, filename = os.path.split(file_path)
-
-        # Replace spaces, semicolons, and colons
-        new_filename = filename.replace(" ", "_").replace(";", "_").replace(":", "_")
-        new_file_path = os.path.join(directory, new_filename)
-
-        # Rename only if the filename changes
-        if file_path != new_file_path:
-            os.rename(file_path, new_file_path)
-            print(f'Renamed: "{filename}" -> "{new_filename}"')
-
-def monitor_directory(directory_to_watch):
-    """
-    Starts monitoring the directory for changes.
-    """
-    observer = Observer()
-    event_handler = RenameHandler()
-    observer.schedule(event_handler, directory_to_watch, recursive=False)
-
-    print(f"Monitoring directory: {directory_to_watch}")
-    observer.start()
-    try:
-        while True:
-            pass  # Keep the script running
-    except KeyboardInterrupt:
-        observer.stop()
-        observer.join()
 
 # Check if the correct number of arguments is provided
 if len(sys.argv) != 2:
@@ -97,8 +52,6 @@ if not AIPROXY_TOKEN:
 if not os.path.exists(folder_name):
     os.mkdir(folder_name)
 
-# Set your directory to monitor
-monitor_directory(folder_name)
 
 def load_csv(file_path: str):
     """
@@ -558,7 +511,7 @@ def LLM_analysis(path: str, data: pd.DataFrame):
         },
         'Graphics folder': path,
         'Note': 'Start code directly with "def LLM_generated_code(data):"; End with return json.dumps(output)',
-        'Avoid': 'Correlation matrix, Linear regression, Clustering and Time-Series Analysis'
+        'Avoid': 'Correlation, Linear regression, Clustering and Time-Series Analysis'
     })
 
     prompt = {
@@ -572,7 +525,8 @@ def LLM_analysis(path: str, data: pd.DataFrame):
                 (a) Network Analysis  
                 (b) Hierarchy Analysis   
                 (c) Anomaly Detection
-                (d) Some other meaningful analysis with good visual  
+                (d) Pareto Analysis
+                (e) Some other meaningful analysis with good visual  
 
                 ### Instructions:
                 1. Based on the metadata, **determine the most suitable type of analysis** from the list above.  
@@ -593,7 +547,7 @@ def LLM_analysis(path: str, data: pd.DataFrame):
                 **Key Notes:**
                 - Ensure modularity and code readability, making it easy for future extensions or analysis modifications.
                 - Handle errors gracefully, such as invalid metadata or unsupported analysis types.
-                - Ensure the final output is visually clear, well-labeled, and meaningful for interpreting the chosen analysis.
+                - Ensure the final output is visually clear, well-labeled, and meaningful.
                 - No other text. Just give code.
                 - Figure dimensions : dpi = 100 , maximum dimensions (5.2, 5.2)
                 """
@@ -789,7 +743,7 @@ def Plot_Summary(json_file_input: dict, additional_analysis, folder_name: str, d
     This function:
     1. Summarizes the dataset and analysis results using an AI model.
     2. Appends results and insights to a README file.
-    3. Processes and describes up to 3 visualizations in the folder.
+    3. Processes and describes up to 5 visualizations in the folder.
 
     Args:
         json_file_input (dict): Metadata about the dataset and analysis.
@@ -840,11 +794,11 @@ def Plot_Summary(json_file_input: dict, additional_analysis, folder_name: str, d
         user_content = f'{json.dumps(json_file_input)}'
         sys_content = f'''Using the metadata and analysis results provided for the data:
                         1. Give a summary of the data (which includes its dimensions, column names and their datatypes etc.).
-                        2. Explain the analysis done with proper justification. Show the analyses results under respective headings.
+                        2. Explain the analysis done with proper justification. Show the analyses results.
                         3. Give useful insights derived from the analysis.
                         4. Give Proper headings to each section. 
 
-                        Analysis Output Related points (Mention at appropriate places):
+                        Analysis Output Related points (Mention at appropriate places, only if applicable):
                         1. The 'Advanced Analysis output' was generated using "Function Calling" in Ai proxy.
                         2. The unknown/Nan entries were dropped during analysis.
                         3. If Clustering Analysis: It used K-Means Algo.
@@ -895,9 +849,11 @@ def Plot_Summary(json_file_input: dict, additional_analysis, folder_name: str, d
     images = {}
     for file in os.listdir(folder_name):
         if '.png' in file:
-            image_path = os.path.join(folder_name, file)
-            images[file.split('.')[0]] = encode_image(image_path)
-            if len(images) >= 3:
+            new_file_name = file.replace(" ", "_").replace(";", "_").replace(":", "_")
+            os.rename(os.path.join(folder_name, file), os.path.join(folder_name, new_file_name))
+            image_path = os.path.join(folder_name, new_file_name)
+            images[os.path.splitext(new_file_name)[0]] = encode_image(image_path)
+            if len(images) >= 5:
                 break
     
     # Append images and their descriptions to README
