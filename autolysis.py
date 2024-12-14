@@ -7,7 +7,8 @@
 #   "matplotlib",
 #   "seaborn",
 #   "statsmodels",
-#   "scikit-learn"
+#   "scikit-learn",
+#   "tenacity"
 # ]
 # ///
 
@@ -25,6 +26,7 @@ from sklearn.cluster import KMeans
 from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder
 import re
 import base64
+from tenacity import retry, stop_after_attempt, wait_exponential, wait_fixed
 
 warnings.filterwarnings("ignore", category=UserWarning)
 
@@ -52,6 +54,60 @@ if not AIPROXY_TOKEN:
 if not os.path.exists(folder_name):
     os.mkdir(folder_name)
 
+def generate_prompt( 
+    user_message: str,
+    system_message: str = 'You are a Professional Data Analyst.', 
+    response_format: str = 'text', 
+    tools: list = None, 
+    tool_preference: str = 'none'
+) -> dict:
+    """
+    Generates a structured prompt for interaction with a language model.
+
+    Args:
+        system_message (str): The instructions or context provided to the system Defaults to 'You are a Professional Data Analyst'.
+        user_message (str): The input or query provided by the user.
+        response_format (str, optional): The desired format of the response. Defaults to 'text'.
+        tools (list, optional): A list of tools that the model can use. Defaults to None.
+        tool_preference (str, optional): Specifies the preferred tool to use. Defaults to 'none'.
+
+    Returns:
+        dict: A dictionary containing the formatted prompt.
+    """
+    if tools is None:
+        prompt = {
+        "model": "gpt-4o-mini",
+        "response_format": {"type": response_format},
+        "messages": [
+            {"role": "system", "content": system_message},
+            {"role": "user", "content": user_message}
+        ]
+    }
+    else:
+        prompt = {
+            "model": "gpt-4o-mini",
+            "response_format": {"type": response_format},
+            "tools": tools,
+            "tool_preference": tool_preference,
+            "messages": [
+                {"role": "system", "content": system_message},
+                {"role": "user", "content": user_message}
+            ]
+        }
+
+    return prompt
+
+
+# Utility: Retry API calls
+@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=1, max=10))
+def call_ai_proxy(prompt):
+    response = requests.post(
+        api_url,
+        headers={"Authorization": f"Bearer {AIPROXY_TOKEN}"},
+        json=prompt
+    )
+    response.raise_for_status()
+    return response.json()
 
 def load_csv(file_path: str):
     """
@@ -103,7 +159,7 @@ def check_numeric_data_type(data: pd.DataFrame):
 
     return results
 
-def correlation(numeric_cols: pd.DataFrame, api_url: str, AIPROXY_TOKEN: str, path: str):
+def correlation(numeric_cols: pd.DataFrame, path: str):
     """
     Computes the correlation matrix for selected numeric columns and saves a heatmap to the specified path.
     
@@ -117,43 +173,27 @@ def correlation(numeric_cols: pd.DataFrame, api_url: str, AIPROXY_TOKEN: str, pa
         pd.DataFrame: Correlation matrix for the selected numeric columns.
     """
     
-    def get_meaningful_columns(content: str, api_url: str, AIPROXY_TOKEN: str):
+    def get_meaningful_columns(content: str):
         """
         Helper function to interact with the AI model and get meaningful columns for the correlation matrix.
         
         Args:
             content (str): Comma-separated column names as input for the AI model.
-            api_url (str): URL for the AI proxy API to get meaningful columns.
-            AIPROXY_TOKEN (str): API token for authentication.
-            file_path (str): Directory path where the heatmap image will be saved.  
         
         Returns:
             str: Comma-separated meaningful columns suggested by the model.
         """
-        
-        # Define API Prompt
-        prompt = {
-            'model': 'gpt-4o-mini',
-            "response_format": { "type": "text" },
-            'messages': [
-                {'role': 'system', 'content': 'Return comma-separated  2,3 or 4 column names (Avoid the initial columns), for a meaningful correlation matrix'},
-                {'role': 'user', 'content': content}
-            ]
-        }
-
+        user_input = f'''Provide 2 to 4 column names, exactly as listed here (case-sensitive): {content}. 
+                        Ensure the names are written precisely as provided, to generate a **meaningful correlation matrix**.'''
+        system_input = """Follow exactly as commanded."""
+        prompt = generate_prompt(user_input, system_input)
+        response = call_ai_proxy(prompt)
         try:
-            # Call the API
-            response = requests.post(
-                api_url, 
-                headers={"Authorization": f"Bearer {AIPROXY_TOKEN}"},
-                json=prompt
-            )
-            response.raise_for_status() # Check for successful execution
-            return response.json().get('choices', [{}])[0].get('message', {}).get('content', '')
-        
-        except requests.exceptions.RequestException as e:
-            print(f"Error in API request: {e}")
-            return ''
+            meaningful_columns = response.get("choices", [{}])[0].get("message", {}).get("content", "")
+        except:
+            meaningful_columns = content
+
+        return meaningful_columns
 
     def compute_correlation_matrix(columns: str):
         """
@@ -175,17 +215,15 @@ def correlation(numeric_cols: pd.DataFrame, api_url: str, AIPROXY_TOKEN: str, pa
     all_columns = ', '.join(numeric_cols.columns)
 
     # Retrieve meaningful columns using the AI model
-    meaningful_columns = get_meaningful_columns(all_columns, api_url, AIPROXY_TOKEN)
-
-    # If no meaningful columns returned, retry with a different prompt format
-    if not meaningful_columns:
-        meaningful_columns = get_meaningful_columns(f'Columns: {all_columns}', api_url, AIPROXY_TOKEN)
+    meaningful_columns = get_meaningful_columns(all_columns)
 
     # Compute the correlation matrix using either meaningful or all columns
-    if meaningful_columns:
+    try:
         correlation_matrix = compute_correlation_matrix(meaningful_columns)
-    else:
-        correlation_matrix = compute_correlation_matrix(all_columns)
+    except Exception as e:
+        print(e)
+        print("Couldn't compute correlation matrix")
+        return None
 
     # Create and save the correlation heatmap
     plt.figure(figsize=(5.2, 5.2), dpi=100)
@@ -204,8 +242,9 @@ def correlation(numeric_cols: pd.DataFrame, api_url: str, AIPROXY_TOKEN: str, pa
     
     return correlation_matrix
 
-
-def basic_analysis(api_url: str, AIPROXY_TOKEN: str, path: str, data: pd.DataFrame):
+# Have some basic analysis to start with, to generate initial statistical findings.
+# Then use these finding to do further analysis using LLM.
+def basic_analysis(path: str, data: pd.DataFrame):
     """
     Performs basic analysis on a dataset, including summary statistics, 
     correlation matrix, outlier detection, missing value analysis, 
@@ -213,9 +252,7 @@ def basic_analysis(api_url: str, AIPROXY_TOKEN: str, path: str, data: pd.DataFra
 
     Args:
         data (pd.DataFrame): The dataset to analyze.
-        api_url (str): URL for the AI proxy API to get meaningful columns.
-        AIPROXY_TOKEN (str): API token for authentication.
-        file_path (str): Directory path where the heatmap image will be saved.
+        path (str): Directory path where the heatmap image will be saved.
 
     Returns:
         dict: 
@@ -235,8 +272,9 @@ def basic_analysis(api_url: str, AIPROXY_TOKEN: str, path: str, data: pd.DataFra
     # Select numeric columns
     numeric_cols = data.select_dtypes(include=[np.number])
     if numeric_cols.shape[1] > 1:  # Only calculate if multiple numeric columns exist
-        correlation_matrix = correlation(numeric_cols, api_url, AIPROXY_TOKEN, path)
-        analysis_dict['Correlation'] = correlation_matrix
+        correlation_matrix = correlation(numeric_cols, path)
+        if correlation is not None:
+            analysis_dict['Correlation'] = correlation_matrix
 
         outliers_data = {col: int((numeric_cols[col] > (numeric_cols[col].mean() + 3 * numeric_cols[col].std())).sum() +
                                    (numeric_cols[col] < (numeric_cols[col].mean() - 3 * numeric_cols[col].std())).sum())
@@ -489,12 +527,35 @@ def convert_dates_to_iso(data):
                         convert_dates_to_iso(item)
     return data
 
+@retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
+def execute_generated_code(prompt, data):
+    response = call_ai_proxy(prompt)
+    
+    # Extract the function code from the response
+    function_code = response['choices'][0]['message']['content']
+    
+    # Regular expression to remove 'python' (if present) and all 'import' lines
+    function_code = re.sub(r'(import .*\n|python)', '', function_code)
+    function_code = re.sub(r'^.*?(def LLM_generated_code\(data\):)', r'\1', function_code, flags=re.DOTALL)
+    function_code = re.sub(r'(return json.dumps\(output\))\s*.*', r'\1', function_code)
+
+    # Execute the generated code to run the analysis
+    try:
+        exec(function_code, globals())
+        analysis_output = LLM_generated_code(data)
+    except Exception as e:
+        # Change the prompt for next input, incase the LLM generated code gives an error
+        prompt['message'][0]['content'] = 'You are professional Python programmer.'
+        prompt['message'][1]['content'] = f'Correct the code : {function_code}, **Error**: {e}'
+        print(e)
+        raise
+    return(analysis_output)
+
 def LLM_analysis(path: str, data: pd.DataFrame):
     """
     Requests Gpt-4o-Mini to generate a function that performs enhanced analysis on given data and saves graphical outputs.
 
     Args:
-        json_file (dict): The metadata in JSON format for analysis.
         path (str): The path where the generated plot should be saved.
         data (pd.DataFrame): The dataset to be analyzed.
 
@@ -513,87 +574,38 @@ def LLM_analysis(path: str, data: pd.DataFrame):
         'Note': 'Start code directly with "def LLM_generated_code(data):"; End with return json.dumps(output)',
         'Avoid': 'Correlation, Linear regression, Clustering and Time-Series Analysis'
     })
+    system_input = """
+                    Using the provided metadata in JSON format, perform the **most suitable analysis** from the following:  
+                    (a) **Network Analysis**  
+                    (b) **Hierarchy Analysis**  
+                    (c) **Anomaly Detection**  
+                    (d) **Pareto Analysis**  
+                    (e) **Feature Importance Analysis**
 
-    prompt = {
-        "model": "gpt-4o-mini",
-        "response_format" : {"type" : "text"},
-        "messages": [
-            {
-                "role": "system",
-                "content": """
-                Using the given metadata in JSON format, follow the steps below to select and perform an appropriate analysis from the options provided:
-                (a) Network Analysis  
-                (b) Hierarchy Analysis   
-                (c) Anomaly Detection
-                (d) Pareto Analysis
-                (e) Some other meaningful analysis with good visual  
-
-                ### Instructions:
-                1. Based on the metadata, **determine the most suitable type of analysis** from the list above.  
-                2. Write a **Python function** to perform the chosen analysis. This function should:
-                - Accept the entire original data as input(DataFrame) having columns names same as given sample data.  
-                - Conduct the analysis as needed, and return JSON output having Analysis Name.  
-                - Produce and **save exactly one graphical output** using `seaborn` (`sns`). Keep the Graphic file name as the analysis name.  
-                3. Adhere strictly to the following libraries:
-                - `os`
-                - `sys`
-                - `pandas` (as `pd`)  
-                - `numpy` (as `np`)  
-                - `matplotlib.pyplot` (as `plt`)  
-                - `seaborn` (as `sns`)  
-                - `statsmodels.api` (as `sm`)  
-                - `json`  
-
-                **Key Notes:**
-                - Ensure modularity and code readability, making it easy for future extensions or analysis modifications.
-                - Handle errors gracefully, such as invalid metadata or unsupported analysis types.
-                - Ensure the final output is visually clear, well-labeled, and meaningful.
-                - No other text. Just give code.
-                - Figure dimensions : dpi = 100 , maximum dimensions (5.2, 5.2)
-                """
-
-            },
-            {
-                "role": "user",
-                "content": f'{input_json_string}'
-            }
-        ]
-    }
-    
-    # Request GPT-4o-Mini response for generating the analysis function
-    ai_proxy = requests.post('https://aiproxy.sanand.workers.dev/openai/v1/chat/completions', 
-                            headers={"Authorization": f"Bearer {AIPROXY_TOKEN}"},
-                            json=prompt)
-    response = ai_proxy.json()
-    try:
-        ai_proxy.raise_for_status()
-        # Extract the function code from the response
-        function_code = response['choices'][0]['message']['content']
-        # Regular expression to remove 'python' (if present) and all 'import' lines
-        function_code = re.sub(r'(import .*\n|python)', '', function_code)
-        function_code = re.sub(r'^.*?(def LLM_generated_code\(data\):)', r'\1', function_code, flags=re.DOTALL)
-        function_code = re.sub(r'(return json.dumps\(output\))\s*.*', r'\1', function_code)
-    except Exception as e:
-        print(f'Error {e}')
-
+                    #### **Instructions**: 
+                    1. Write a **Python function** for the chosen analysis, adhering to these rules:  
+                    - **Input**: Full dataset (as a DataFrame with the same column names as provided in the sample).  
+                    - **Output**: JSON with the analysis name, and numerical analysis results.
+                    - **Visual**: Save **one visualization** using `seaborn` (file name = analysis name).  
+                    2. **Constraints**:  
+                    - Use **only** these libraries: `os`, `sys`, `pandas`, `numpy`, `matplotlib.pyplot`, `seaborn`, `statsmodels.api`, and `json`.  
+                    - Graph must be clear, labeled, and saved with `dpi=100` and max size `(5.2, 5.2)`."""
+    user_input = f'{input_json_string}'
+    prompt = generate_prompt(user_input, system_input)
     try:
         # Execute the generated code to run the analysis
-        exec(function_code, globals())
-        analysis_output = LLM_generated_code(data)
+        analysis_output = execute_generated_code(prompt, data)
         return analysis_output
-    except Exception as e:
-        print(f"Error executing generated function. The code generated by LLM gave error.")
-        print('Skipping LLM Based Analysis. This was an extra experimental part, meant to generate any extra analysis which had been missed so far.')
+    except:
+        print(f"Failed to execute code generated by LLM.")
         return None
 
-def perform_advanced_analysis(api_url: str, AIPROXY_TOKEN: str, data: pd.DataFrame):
+def perform_advanced_analysis(data: pd.DataFrame):
     """
     Executes advanced analytical functions based on the provided data and API configuration.
 
     Args:
         data (object): The data to be analyzed.
-        api_url (str): The URL of the API to call.
-        AIPROXY_TOKEN (str): The API token for authentication.
 
     Returns:
         object: The result of the analysis performed by the selected function.
@@ -694,7 +706,7 @@ def perform_advanced_analysis(api_url: str, AIPROXY_TOKEN: str, data: pd.DataFra
         'tool_choice': 'required',
         'messages': [{
             "role": "system",
-            "content": 'Do meaningful analysis only, given the dataset sample.'
+            "content": 'You are a Professional Data Analyst.'
         },
         {
             "role" : "user",
@@ -703,37 +715,26 @@ def perform_advanced_analysis(api_url: str, AIPROXY_TOKEN: str, data: pd.DataFra
     }
     
     # Sending the request to the API
-    response = requests.post(api_url, 
-                             headers={"Authorization": f"Bearer {AIPROXY_TOKEN}"}, 
-                             json=prompt)
-
+    response = call_ai_proxy(prompt)
     print('Initiating Advanced Analysis...')
-    response_data = response.json()
     # Handling the API response
-    if response.status_code == 200:
+    tool_calls = response['choices'][0]['message']['tool_calls']
+    output = {}
+    for i in range(len(tool_calls)):
+        function_name = tool_calls[i]['function']['name']
+        function_args = json.loads(tool_calls[i]['function']['arguments'])
+        function_args['dataset'] = data
         try:
-            tool_calls = response_data['choices'][0]['message']['tool_calls']
-            output = {}
-            for i in range(len(tool_calls)):
-                function_name = tool_calls[i]['function']['name']
-                function_args = json.loads(tool_calls[i]['function']['arguments'])
-                function_args['dataset'] = data
-                # Dynamically invoking the selected function
-                function = globals().get(function_name)
-                if function:
-                    try:
-                        analysis_output = function(**function_args)
-                        output[function_name] = analysis_output
-                    except Exception as e:
-                        print(f"Error in {function_name}. Skipping this part of analysis.")
-                else:
-                    print(f'Invalid function : {function} called by LLM. Skipping this part of analysis.')
+            # Dynamically invoking the selected function
+            function = globals().get(function_name)
+            analysis_output = function(**function_args)
+            output[function_name] = analysis_output
         except Exception as e:
-            print(f'Stopped processing due to {e}')
-            return None
-    else:
-        print(f'Error in calling LLM.')
-        return None
+            print(f"Error in implementing{function_name}")
+            prompt['messages'][0]['content'] = f'You are a professional data analyst. Do meaningful analysis avoiding error: {e}'
+
+
+    
     return output
 
 def Plot_Summary(json_file_input: dict, additional_analysis, folder_name: str, data: pd.DataFrame):
@@ -754,83 +755,8 @@ def Plot_Summary(json_file_input: dict, additional_analysis, folder_name: str, d
     Returns:
         None
     """
-    print('Generating Summary....')
-    def call_LLM(sys_content:str, user_content:str, user_input_type:str = 'text'):
-        """
-        Helper function to send requests to the AI model and retrieve responses.
-
-        Args:
-            sys_content (str): System instructions for the AI.
-            user_content (str): User-provided content for analysis.
-            user_input_type (str): Type of input ('text' or 'image_url').
-
-        Returns:
-            response (Response): The response object from the AI API.
-        """
-        prompt = {
-            "model": "gpt-4o-mini",
-            "response_format": { "type": "text" },
-            "messages": [
-                {
-                    "role": "system",
-                    "content": sys_content
-                },
-                {
-                    "role": "user",
-                    "content": [{
-                      'type' : user_input_type,
-                      user_input_type : user_content 
-                    }]
-                }
-            ],
-        } 
-        response = requests.post('https://aiproxy.sanand.workers.dev/openai/v1/chat/completions', 
-                            headers={"Authorization": f"Bearer {AIPROXY_TOKEN}"},
-                            json=prompt)
-        return response    
+    print('Generating Summary....')   
     
-    try:
-        # Generate dataset summary using AI
-        user_content = f'{json.dumps(json_file_input)}'
-        sys_content = f'''Using the metadata and analysis results provided for the data:
-                        1. Give a summary of the data (which includes its dimensions, column names and their datatypes etc.).
-                        2. Explain the analysis done with proper justification. Show the analyses results.
-                        3. Give useful insights derived from the analysis.
-                        4. Give Proper headings to each section. 
-
-                        Analysis Output Related points (Mention at appropriate places, only if applicable):
-                        1. The 'Advanced Analysis output' was generated using "Function Calling" in Ai proxy.
-                        2. The unknown/Nan entries were dropped during analysis.
-                        3. If Clustering Analysis: It used K-Means Algo.
-                        4. The 'LLM based analysis' was completely done by LLM from choosing analysis type, to its coding.
-
-                        Dataset Sample: 
-                        {convert_dates_to_iso(data.head(3).to_dict())}'''
-        response = call_LLM(sys_content, user_content)    
-        response.raise_for_status()
-        summary = response.json().get('choices', [{}])[0].get('message', {}).get('content', '')
-    except requests.exceptions.RequestException as e:
-        print(response.json())
-        print(f"Error in API request: {e}")
-        return None
-    else:
-        # Append summary to README file
-        with open(os.path.join(folder_name, 'README.md'), "a") as file:
-            file.write(summary)
-            file.write("\n")
-            # Process additional analysis if available
-            if additional_analysis is not None:
-                user_content = f'{json.dumps(additional_analysis)}'
-                user_input_type = 'text'
-                sys_content = 'Give a summary with justification for the folowing "LLM based analysis"'
-                llm_summary = call_LLM(sys_content, user_content, user_input_type)
-                try:
-                    llm_summary.raise_for_status()
-                    llm_summary_data = llm_summary.json().get('choices', [{}])[0].get('message', {}).get('content', '')
-                    file.write(f"\n\n### LLM Generated Analysis\n")
-                    file.write(llm_summary_data)
-                except Exception as e:
-                    print(f'llm_summary Error : {e}')
 
     def encode_image(image_path):
         """
@@ -845,44 +771,62 @@ def Plot_Summary(json_file_input: dict, additional_analysis, folder_name: str, d
         with open(image_path, "rb") as image_file:
             return base64.b64encode(image_file.read()).decode('utf-8')
     
-    # Process images in the folder
-    images = {}
+    # Process images in the folder involving vision capabilities of LLM
+    images = []
     for file in os.listdir(folder_name):
         if '.png' in file:
             new_file_name = file.replace(" ", "_").replace(";", "_").replace(":", "_")
             os.rename(os.path.join(folder_name, file), os.path.join(folder_name, new_file_name))
             image_path = os.path.join(folder_name, new_file_name)
-            images[os.path.splitext(new_file_name)[0]] = encode_image(image_path)
+            images.append(encode_image(image_path))
             if len(images) >= 5:
                 break
     
-    # Append images and their descriptions to README
-    with open(os.path.join(folder_name, 'README.md'), "a") as file:
-        user_input_type = 'image_url'
-        for image_name, image_data in images.items():
-            file.write(f"\n\n### Image {image_name}\n")
-            file.write(f"![{image_name}]({image_name.replace(" ", "_").replace(";", "_").replace(":", "_")}.png)\n\n")
+    # Utilizing vision-capabilities of LLMs
+    user_content =[{"type": "image_url",
+                    "image_url": {"url":  f"data:image/jpeg;base64,{image_data}",
+                                    "detail" : "low"}} for image_data in images] 
+    try:
+        # Generate dataset summary using AI
+        text_content = {"type": "text",
+                         "text": f'{json.dumps(json_file_input)}'}
+        user_content.append(text_content)
 
-            sys_content = f'Write a description on the {image_name} image in 200-250 words'
-            user_content ={"url":  f"data:image/jpeg;base64,{image_data}",
-                           "detail" : "low"}
-            image_description = call_LLM(sys_content, user_content, user_input_type)
-            try:
-                image_description.raise_for_status()
-                file.write(image_description.json().get('choices', [{}])[0].get('message', {}).get('content', ''))
-            except Exception as e:
-                print(f'Image Description Error : {e}')
-                print(image_description.json())
-                continue
+        if additional_analysis is not None:
+            LLM_analysis_content = {
+                "type": "text",
+                "text": f'{json.dumps(additional_analysis)}'
+            }
+            user_content.append(LLM_analysis_content)
+
+        sys_content = f'''You are a Professional Data Analyst. Using user input:
+                        1. Give a summary of the data (which includes its dimensions, column names and their datatypes etc.).
+                        2. Explain the analysis done with proper justification. Show the analysis results.
+                        3. Give useful insights derived from the analysis. Use given images for explanation.
+                        4. Give Proper headings to each section.'''
+        
+        prompt = generate_prompt(user_content, sys_content)  
+        response = call_ai_proxy(prompt)
+        summary = response.get('choices', [{}])[0].get('message', {}).get('content', '')
+    except requests.exceptions.RequestException as e:
+        print(response.json())
+        print(f"Error in API request: {e}")
+        return None
+    else:
+        # Append summary to README file
+        with open(os.path.join(folder_name, 'README.md'), "a") as file:
+            file.write(summary)
+            file.write("\n")
+
     print('Analysis Completed')
     return 
 
 def Statistical_Analysis(data):
     # Initiate basic analysis
-    analysis_dict = basic_analysis(api_url, AIPROXY_TOKEN, folder_name, data)
+    analysis_dict = basic_analysis(folder_name, data)
 
     # Perform 2nd Level of Analysis by using LLM Function Calling
-    advanced_analysis_output = perform_advanced_analysis(api_url, AIPROXY_TOKEN, data)
+    advanced_analysis_output = perform_advanced_analysis(data)
     if advanced_analysis_output is not None: 
         analysis_dict['Advanced Analysis output'] = advanced_analysis_output
 
@@ -891,7 +835,6 @@ def Statistical_Analysis(data):
 
     # Miscellaneous Analysis using LLM 
     additional_analysis = LLM_analysis(folder_name, data)
-
     # Draft summary in README.md
     Plot_Summary(json_file_input, additional_analysis, folder_name, data)
 
