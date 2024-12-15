@@ -39,8 +39,8 @@ if len(sys.argv) != 2:
 # Extract the file path
 file_path = sys.argv[1]
 
-# The name of folder where outputs are to be saved
-folder_name = sys.argv[1].split('.')[0]
+# The folder where outputs are to be saved
+folder_name = os.path.splitext(file_path)[0]
 
 # URL of AI-Proxy
 api_url = 'https://aiproxy.sanand.workers.dev/openai/v1/chat/completions'
@@ -799,10 +799,10 @@ def Plot_Summary(json_file_input: dict, additional_analysis, folder_name: str, d
             }
             user_content.append(LLM_analysis_content)
 
-        sys_content = f'''You are a Professional Data Analyst. Using user input:
+        sys_content = f'''You are a Professional Data Analyst. Using user input, generate a narrative analysis:
                         1. Give a summary of the data (which includes its dimensions, column names and their datatypes etc.).
                         2. Explain the analysis done with proper justification. Show the analysis results.
-                        3. Give useful insights derived from the analysis. Use given images for explanation.
+                        3. Give useful insights derived from the analysis. Use given images for explanation at appropriate places.
                         4. Give Proper headings to each section.'''
         
         prompt = generate_prompt(user_content, sys_content)  
