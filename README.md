@@ -15,8 +15,7 @@ The Auto-Analysis Programme is designed to automate various data analysis tasks 
 - Automated data preprocessing and cleaning
 - Data visualization and exploratory data analysis
 - Statistical analysis and hypothesis testing
-- Machine learning model training and evaluation
-- Report generation and result summarization
+- LLM API calling and tooling
 
 ## Samples
 Some sample results from the analysis have been shown in the folders. Each folder includes some graphs and a README.md file which summarizes the analysis process.
