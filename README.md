@@ -5,7 +5,7 @@ This repository is for Project 2 of Tools in Data Science, focusing on automated
 ## Table of Contents
 - [Introduction](#introduction)
 - [Features](#features)
-- [Installation](#installation)
+- [Installations](#installations)
 - [Usage](#usage)
 
 ## Introduction
@@ -18,7 +18,11 @@ The Auto-Analysis Programme is designed to automate various data analysis tasks 
 - Machine learning model training and evaluation
 - Report generation and result summarization
 
-## Installation
+## Samples
+Some sample results from the analysis have been shown in the folders. Each folder includes some graphs and a README.md file which summarizes the analysis process.
+The datasets used for generating these samples were provided by [Mr. Anand S](https://sg.linkedin.com/in/sanand0) , and can be found [here](https://github.com/sanand0/tools-in-data-science-public/blob/tds-2024-t3/project-2-automated-analysis.md) along with further project details.
+
+## Installations
 Install [uv](https://docs.astral.sh/uv/guides/scripts) for running the project code.
 ```bash
 pip install uv
