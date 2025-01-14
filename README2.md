@@ -7,9 +7,6 @@ This repository is for Project 2 of Tools in Data Science, focusing on automated
 - [Features](#features)
 - [Installation](#installation)
 - [Usage](#usage)
-- [Contributing](#contributing)
-- [License](#license)
-- [Contact](#contact)
 
 ## Introduction
 The Auto-Analysis Programme is designed to automate various data analysis tasks using LLMs. This project aims to provide an efficient and robust solution for analyzing data with minimal manual intervention.
@@ -22,6 +19,17 @@ The Auto-Analysis Programme is designed to automate various data analysis tasks 
 - Report generation and result summarization
 
 ## Installation
-To install the necessary dependencies, run the following command:
+Install [uv](https://docs.astral.sh/uv/guides/scripts) for running the project code.
 ```bash
-pip install -r requirements.txt
+pip install uv
+```
+
+## Usage
+- Set an [OpenAI API Proxy](https://platform.openai.com/docs/api-reference/introduction) Key as an environment variable using the following command. (Replace ABCDEFGH with your actual API key)
+```bash
+export 'AIPROXY_TOKEN' = ABCDEFGH
+```
+- Run the following command to start the auto analysis.
+```bash
+uv run path_to_your_file
+```
