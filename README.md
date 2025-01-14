@@ -5,6 +5,7 @@ This repository is for Project 2 of Tools in Data Science, focusing on automated
 ## Table of Contents
 - [Introduction](#introduction)
 - [Features](#features)
+- [Samples](#samples)
 - [Installations](#installations)
 - [Usage](#usage)
 
