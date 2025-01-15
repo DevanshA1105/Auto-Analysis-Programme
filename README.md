@@ -35,5 +35,5 @@ export 'AIPROXY_TOKEN' = ABCDEFGH
 ```
 - Run the following command to start the auto analysis.
 ```bash
-uv run path_to_your_file
+uv run autolysis.py path_to_your_file
 ```
