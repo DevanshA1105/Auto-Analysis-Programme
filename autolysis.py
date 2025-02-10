@@ -165,9 +165,7 @@ def correlation(numeric_cols: pd.DataFrame, path: str):
     
     Args:
         numeric_cols (pd.DataFrame): DataFrame containing numeric columns.
-        api_url (str): URL for the AI proxy API to get meaningful columns.
-        AIPROXY_TOKEN (str): API token for authentication.
-        file_path (str): Directory path where the heatmap image will be saved.
+        path (str): Directory path where the heatmap image will be saved.
         
     Returns:
         pd.DataFrame: Correlation matrix for the selected numeric columns.
